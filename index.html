@@ -38,15 +38,15 @@
         <div class="field-grid">
           <label class="field">
             <span class="field-label">Возраст</span>
-            <span class="input-wrap"><input id="age" name="age" type="number" inputmode="numeric" min="15" max="100" placeholder="28" required><span class="unit">лет</span></span>
+            <span class="input-wrap"><input id="age" name="age" type="number" inputmode="numeric" min="15" max="100" step="1" placeholder="28" aria-describedby="form-error" required><span class="unit">лет</span></span>
           </label>
           <label class="field">
             <span class="field-label">Вес</span>
-            <span class="input-wrap"><input id="weight" name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" placeholder="68" required><span class="unit">кг</span></span>
+            <span class="input-wrap"><input id="weight" name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" placeholder="68" aria-describedby="form-error" required><span class="unit">кг</span></span>
           </label>
           <label class="field">
             <span class="field-label">Рост</span>
-            <span class="input-wrap"><input id="height" name="height" type="number" inputmode="numeric" min="120" max="230" placeholder="172" required><span class="unit">см</span></span>
+            <span class="input-wrap"><input id="height" name="height" type="number" inputmode="numeric" min="120" max="230" step="1" placeholder="172" aria-describedby="form-error" required><span class="unit">см</span></span>
           </label>
           <label class="field">
             <span class="field-label">Биологический пол</span>
@@ -104,8 +104,12 @@
         <span class="meal-count">3 ПРИЁМА</span>
       </div>
       <div class="meal-list" id="meal-list"></div>
-      <div class="menu-total"><span>Итого за день</span><strong><span id="menu-total">—</span> <small>ккал</small></strong></div>
-      <p class="disclaimer">Расчёт и меню носят информационный характер и не заменяют консультацию врача или диетолога. Калорийность блюд приблизительная.</p>
+      <p class="sr-only" id="menu-status" role="status" aria-live="polite"></p>
+      <div class="menu-total">
+        <div class="menu-total-label"><span>Итого за день</span><small id="menu-balance"></small></div>
+        <strong><span id="menu-total">—</span> <small>ккал</small></strong>
+      </div>
+      <p class="disclaimer">Меню включает три приёма пищи, поэтому его сумма может отличаться от суточной цели. Калорийность примерная; расчёт не заменяет консультацию врача или диетолога.</p>
     </section>
 
     <footer class="footer"><span>С заботой о вашем ритме</span><span>© <span id="year"></span> рацион</span></footer>
