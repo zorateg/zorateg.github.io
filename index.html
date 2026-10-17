@@ -39,6 +39,7 @@
           <label class="field">
             <span class="field-label">Возраст</span>
             <span class="input-wrap"><input id="age" name="age" type="number" inputmode="numeric" min="15" max="100" step="1" placeholder="28" aria-describedby="form-error" required><span class="unit">лет</span></span>
+            <small class="field-note">Меню подбирается по группам 15–17, 18–64 и 65+.</small>
           </label>
           <label class="field">
             <span class="field-label">Вес</span>
@@ -68,6 +69,7 @@
               <option value="gain">Набор массы</option>
             </select><span class="select-chevron" aria-hidden="true">⌄</span>
           </span>
+          <small class="field-note" id="goal-note" aria-live="polite">Цель влияет на ориентировочную калорийность.</small>
         </label>
 
         <fieldset class="activity-field">
@@ -90,13 +92,15 @@
       <div class="results-intro">
         <p class="step-label">ШАГ 02 <span>·</span> ВАШ ПЛАН</p>
         <h2>На сегодня<br><span>всё готово.</span></h2>
+        <span class="age-plan-label" id="age-plan-label"></span>
+        <p class="age-plan-note" id="age-plan-note"></p>
       </div>
       <article class="calorie-card">
-        <div class="calorie-card-top"><span class="calorie-icon" aria-hidden="true">◉</span><span class="calorie-caption">ВАША ЦЕЛЬ НА ДЕНЬ</span><span class="calorie-badge" id="goal-badge">Поддержание</span></div>
+        <div class="calorie-card-top"><span class="calorie-icon" aria-hidden="true">◉</span><span class="calorie-caption" id="calorie-caption">ВАША ЦЕЛЬ НА ДЕНЬ</span><span class="calorie-badge" id="goal-badge">Поддержание</span></div>
         <div class="calorie-number"><strong id="calorie-target">—</strong><span>ккал</span></div>
         <div class="calorie-divider"></div>
         <div class="calorie-meta"><span>Основной обмен</span><b id="bmr-value">— ккал</b></div>
-        <p class="calorie-footnote">Ориентировочная норма с учётом вашей активности и цели.</p>
+        <p class="calorie-footnote" id="calorie-footnote">Ориентировочная норма с учётом вашей активности и цели.</p>
       </article>
 
       <div class="menu-heading">
@@ -109,7 +113,15 @@
         <div class="menu-total-label"><span>Итого за день</span><small id="menu-balance"></small></div>
         <strong><span id="menu-total">—</span> <small>ккал</small></strong>
       </div>
-      <p class="disclaimer">Меню включает три приёма пищи, поэтому его сумма может отличаться от суточной цели. Калорийность примерная; расчёт не заменяет консультацию врача или диетолога.</p>
+      <section class="inspiration" aria-labelledby="inspiration-title">
+        <div class="inspiration-heading">
+          <div><p class="step-label">ЕЩЁ БОЛЬШЕ ВДОХНОВЕНИЯ</p><h2 id="inspiration-title">Идеи с фото</h2></div>
+          <span class="meal-count">3 ИДЕИ</span>
+        </div>
+        <p class="inspiration-note" id="inspiration-note">Дополнительные идеи не входят в сумму меню.</p>
+        <div class="inspiration-grid" id="inspiration-grid"></div>
+      </section>
+      <p class="disclaimer" id="disclaimer">Меню включает три приёма пищи, поэтому его сумма может отличаться от суточной цели. Калорийность примерная; расчёт не заменяет консультацию врача или диетолога.</p>
     </section>
 
     <footer class="footer"><span>С заботой о вашем ритме</span><span>© <span id="year"></span> рацион</span></footer>
