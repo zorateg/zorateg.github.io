@@ -27,6 +27,10 @@ const goalLabels = { lose: 'Похудение', maintain: 'Поддержани
 const form = document.getElementById('nutrition-form');
 const errorBox = document.getElementById('form-error');
 const results = document.getElementById('results');
+const fieldIds = ['age', 'weight', 'height'];
+const menuStatus = document.getElementById('menu-status');
+let currentMealSelections = {};
+let currentTargetCalories = 0;
 
 function nearestMeal(options, targetCalories) {
   return options.reduce((best, current) =>
@@ -44,15 +48,58 @@ function getFormValues() {
   return { age, weight, height, sex, goal, activity };
 }
 
-function validate({ age, weight, height }) {
-  if (![age, weight, height].every(Number.isFinite) || !age || !weight || !height) {
+function validate({ age, weight, height, sex, goal, activity }) {
+  const fields = fieldIds.map((id) => document.getElementById(id));
+  if (fields.some((field) => field.value.trim() === '')) {
     return 'Заполните возраст, вес и рост, чтобы продолжить.';
+  }
+  if (![age, weight, height, activity].every(Number.isFinite)) {
+    return 'Проверьте введённые параметры.';
   }
   if (age < 15 || age > 100) return 'Укажите возраст от 15 до 100 лет.';
   if (weight < 30 || weight > 300) return 'Укажите вес от 30 до 300 кг.';
   if (height < 120 || height > 230) return 'Укажите рост от 120 до 230 см.';
+
+  const stepMismatch = fields.find((field) => field.validity.stepMismatch);
+  if (stepMismatch?.id === 'age') return 'Возраст укажите целым числом.';
+  if (stepMismatch?.id === 'weight') return 'Вес укажите с точностью до 0,1 кг.';
+  if (stepMismatch?.id === 'height') return 'Рост укажите целым числом.';
+  if (!['female', 'male'].includes(sex) || !['lose', 'maintain', 'gain'].includes(goal) || ![1.2, 1.375, 1.55, 1.725].includes(activity)) {
+    return 'Проверьте выбранные параметры.';
+  }
   return '';
 }
+
+function updateFieldValidityState() {
+  fieldIds.forEach((id) => {
+    const field = document.getElementById(id);
+    const invalid = !field.checkValidity();
+    field.setAttribute('aria-invalid', String(invalid));
+    field.closest('.input-wrap')?.classList.toggle('is-invalid', invalid);
+  });
+}
+
+function hideResults() {
+  results.classList.remove('is-visible');
+  results.setAttribute('aria-hidden', 'true');
+}
+
+function scrollResultsIntoView() {
+  const prefersReducedMotion = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  results.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+}
+
+function handleFormUpdate() {
+  if (errorBox.textContent) {
+    errorBox.textContent = validate(getFormValues());
+    updateFieldValidityState();
+  }
+  if (results.classList.contains('is-visible')) hideResults();
+}
+
+form.addEventListener('input', handleFormUpdate);
+form.addEventListener('change', handleFormUpdate);
 
 function roundToNearest50(value) {
   return Math.round(value / 50) * 50;
@@ -71,61 +118,104 @@ function imageUrl(photoId) {
   return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=1000&q=82`;
 }
 
+function createMealCard(key, dish) {
+  const card = document.createElement('article');
+  card.className = 'meal-card';
+
+  const imageWrap = document.createElement('div');
+  imageWrap.className = 'meal-image-wrap';
+  const image = document.createElement('img');
+  image.className = 'meal-image';
+  image.src = imageUrl(dish.image);
+  image.alt = dish.name;
+  image.loading = 'lazy';
+  image.decoding = 'async';
+  imageWrap.append(image);
+
+  const label = document.createElement('span');
+  label.className = 'meal-label';
+  label.textContent = mealTitles[key];
+  imageWrap.append(label);
+
+  const content = document.createElement('div');
+  content.className = 'meal-content';
+  const titleRow = document.createElement('div');
+  titleRow.className = 'meal-title-row';
+  const name = document.createElement('h3');
+  name.className = 'meal-title';
+  name.textContent = dish.name;
+  const calories = document.createElement('span');
+  calories.className = 'meal-calories';
+  calories.textContent = `${dish.calories} ккал`;
+  titleRow.append(name, calories);
+
+  const recipe = document.createElement('p');
+  recipe.className = 'meal-recipe';
+  recipe.textContent = dish.recipe;
+
+  const actions = document.createElement('div');
+  actions.className = 'meal-actions';
+  const swapButton = document.createElement('button');
+  swapButton.className = 'meal-swap';
+  swapButton.type = 'button';
+  swapButton.textContent = '↻ Другое блюдо';
+  swapButton.setAttribute('aria-label', `Другое блюдо: ${mealTitles[key]}`);
+  swapButton.addEventListener('click', () => swapMeal(key, card));
+  actions.append(swapButton);
+
+  content.append(titleRow, recipe, actions);
+  card.append(imageWrap, content);
+  return card;
+}
+
+function updateMenuTotal() {
+  const menuCalories = Object.values(currentMealSelections)
+    .reduce((sum, dish) => sum + dish.calories, 0);
+  const difference = currentTargetCalories - menuCalories;
+  const balance = document.getElementById('menu-balance');
+
+  document.getElementById('menu-total').textContent = menuCalories.toLocaleString('ru-RU');
+  if (Math.abs(difference) <= 50) {
+    balance.textContent = 'Почти соответствует дневной цели';
+  } else if (difference > 0) {
+    balance.textContent = `Ниже цели на ${difference.toLocaleString('ru-RU')} ккал`;
+  } else {
+    balance.textContent = `Выше цели на ${Math.abs(difference).toLocaleString('ru-RU')} ккал`;
+  }
+  balance.classList.toggle('is-close', Math.abs(difference) <= 100);
+}
+
+function swapMeal(key, card) {
+  const options = meals[key];
+  const currentIndex = options.indexOf(currentMealSelections[key]);
+  const dish = options[(currentIndex + 1) % options.length];
+  currentMealSelections[key] = dish;
+
+  const replacement = createMealCard(key, dish);
+  card.replaceWith(replacement);
+  replacement.querySelector('.meal-swap').focus({ preventScroll: true });
+  updateMenuTotal();
+  menuStatus.textContent = `${mealTitles[key]}: ${dish.name}, ${dish.calories} ккал. ${document.getElementById('menu-balance').textContent}.`;
+}
+
 function renderMeals(targetCalories) {
+  currentTargetCalories = targetCalories;
+  currentMealSelections = {};
   const mealTargets = {
     breakfast: targetCalories * 0.25,
     lunch: targetCalories * 0.40,
     dinner: targetCalories * 0.35
   };
-  const chosen = Object.keys(mealTitles).map((key) => ({
-    key,
-    title: mealTitles[key],
-    dish: nearestMeal(meals[key], mealTargets[key])
-  }));
-
   const mealList = document.getElementById('meal-list');
   mealList.replaceChildren();
-  chosen.forEach(({ title, dish }) => {
-    const card = document.createElement('article');
-    card.className = 'meal-card';
 
-    const imageWrap = document.createElement('div');
-    imageWrap.className = 'meal-image-wrap';
-    const image = document.createElement('img');
-    image.className = 'meal-image';
-    image.src = imageUrl(dish.image);
-    image.alt = dish.name;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    imageWrap.append(image);
-
-    const label = document.createElement('span');
-    label.className = 'meal-label';
-    label.textContent = title;
-    imageWrap.append(label);
-
-    const content = document.createElement('div');
-    content.className = 'meal-content';
-    const titleRow = document.createElement('div');
-    titleRow.className = 'meal-title-row';
-    const name = document.createElement('h3');
-    name.className = 'meal-title';
-    name.textContent = dish.name;
-    const calories = document.createElement('span');
-    calories.className = 'meal-calories';
-    calories.textContent = `${dish.calories} ккал`;
-    titleRow.append(name, calories);
-
-    const recipe = document.createElement('p');
-    recipe.className = 'meal-recipe';
-    recipe.textContent = dish.recipe;
-    content.append(titleRow, recipe);
-    card.append(imageWrap, content);
-    mealList.append(card);
+  Object.keys(mealTitles).forEach((key) => {
+    const dish = nearestMeal(meals[key], mealTargets[key]);
+    currentMealSelections[key] = dish;
+    mealList.append(createMealCard(key, dish));
   });
-
-  const menuCalories = chosen.reduce((sum, item) => sum + item.dish.calories, 0);
-  document.getElementById('menu-total').textContent = menuCalories.toLocaleString('ru-RU');
+  updateMenuTotal();
+  menuStatus.textContent = '';
 }
 
 form.addEventListener('submit', (event) => {
@@ -134,10 +224,18 @@ form.addEventListener('submit', (event) => {
   const message = validate(person);
   errorBox.textContent = message;
   if (message) {
-    const invalidField = ['age', 'weight', 'height'].map((id) => document.getElementById(id)).find((field) => !field.value || !field.checkValidity());
+    updateFieldValidityState();
+    hideResults();
+    const invalidField = fieldIds.map((id) => document.getElementById(id)).find((field) => !field.value || !field.checkValidity());
     invalidField?.focus();
     return;
   }
+
+  fieldIds.forEach((id) => {
+    const field = document.getElementById(id);
+    field.removeAttribute('aria-invalid');
+    field.closest('.input-wrap')?.classList.remove('is-invalid');
+  });
 
   const { bmr, target } = calculateCalories(person);
   document.getElementById('calorie-target').textContent = target.toLocaleString('ru-RU');
@@ -147,10 +245,10 @@ form.addEventListener('submit', (event) => {
 
   results.setAttribute('aria-hidden', 'false');
   results.classList.remove('is-visible');
-  // Перезапуск анимации и плавная прокрутка к готовому результату.
+  // Перезапуск анимации и прокрутка с учётом настройки уменьшения анимации.
   void results.offsetWidth;
   results.classList.add('is-visible');
-  window.setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  window.setTimeout(scrollResultsIntoView, 80);
 });
 
 document.getElementById('year').textContent = new Date().getFullYear();
